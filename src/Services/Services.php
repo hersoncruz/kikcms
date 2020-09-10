@@ -31,9 +31,12 @@ use KikCmsCore\Exceptions\ResourcesExceededException;
 use KikCmsCore\Services\DbService;
 use Monolog\ErrorHandler;
 use Monolog\Handler\DeduplicationHandler;
+use Nette\PhpGenerator\Factory;
 use Phalcon\Acl\Adapter\Memory;
 use Phalcon\Assets\Manager;
-use Phalcon\Cache\Backend\Factory;
+use Phalcon\Cache;
+use Phalcon\Cache\Adapter\AdapterInterface;
+use Phalcon\Cache\AdapterFactory;
 use Phalcon\Cache\Backend\File;
 use Phalcon\Cache\BackendInterface;
 use Phalcon\Cache\Frontend\Data;
@@ -45,6 +48,7 @@ use Phalcon\Db\Adapter\Pdo;
 use Phalcon\Filter;
 use Phalcon\Http\Response\Cookies;
 use Phalcon\Security;
+use Phalcon\Storage\SerializerFactory;
 use Phalcon\Validation;
 use Monolog\Handler\NativeMailerHandler;
 use Monolog\Logger;
@@ -153,11 +157,11 @@ class Services extends BaseServices
     }
 
     /**
-     * @return BackendInterface|null
+     * @return Cache|null
      */
-    protected function initCache(): ?BackendInterface
+    protected function initCache(): ?Cache
     {
-        if ( ! $config = (array) $this->getIniConfig()->cache ?? null) {
+        if ( ! $config = (array) $this->getIniConfig()->cache->toArray() ?? null) {
             return null;
         }
 
@@ -178,9 +182,15 @@ class Services extends BaseServices
             $config["prefix"] = $_SERVER['SERVER_PORT'] . ':' . ($config["prefix"] ?? '');
         }
 
-        $config["frontend"] = new Data();
+//        $config["frontend"] = new Data();
+        $config['defaultSerializer'] = 'Json';
 
-        return Factory::load($config);
+        $serializerFactory = new SerializerFactory();
+        $adapterFactory    = new AdapterFactory($serializerFactory);
+
+        $adapter = $adapterFactory->newInstance($config['adapter'], $config);
+
+        return new Cache($adapter);
     }
 
     /**
