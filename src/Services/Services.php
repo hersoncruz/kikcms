@@ -234,9 +234,16 @@ class Services extends BaseServices
      */
     protected function initKeyValue(): Cache
     {
-        $frontend = new Json(["lifetime" => 3600 * 24 * 365 * 1000]);
+        $config['defaultSerializer'] = 'Json';
 
-        return new File($frontend, ['cacheDir' => $this->getAppConfig()->path . 'storage/keyvalue/']);
+        $serializerFactory = new SerializerFactory();
+        $adapterFactory    = new AdapterFactory($serializerFactory);
+
+        $adapter = $adapterFactory->newInstance('stream', [
+            'cacheDir' => $this->getAppConfig()->path . 'storage/keyvalue/'
+        ]);
+
+        return new Cache($adapter);
     }
 
     /**
